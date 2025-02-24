@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Data Supabase ke Excel (Realtime & Filter Tanggal)</title>
+  <title>Data Supabase ke Excel (Realtime, Filter & Ceklis)</title>
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Library SheetJS untuk ekspor ke Excel -->
@@ -116,18 +116,20 @@
           section.innerHTML = `<h2>${new Date(dateKey).toLocaleDateString('id-ID')}</h2>`;
 
           const table = document.createElement('table');
-          // Menambahkan colgroup untuk memastikan kolom memiliki lebar konsisten
+          // Menambahkan colgroup untuk memastikan kolom memiliki lebar konsisten (4 kolom)
           table.innerHTML = `
             <colgroup>
-              <col style="width: 33.33%;">
-              <col style="width: 33.33%;">
-              <col style="width: 33.33%;">
+              <col style="width: 25%;">
+              <col style="width: 25%;">
+              <col style="width: 25%;">
+              <col style="width: 25%;">
             </colgroup>
             <thead>
               <tr>
                 <th>Nama</th>
                 <th>Jenis Kendaraan</th>
                 <th>Harga Cuci</th>
+                <th>Ceklis</th>
               </tr>
             </thead>
             <tbody>
@@ -136,6 +138,9 @@
                   <td>${entry.name}</td>
                   <td>${entry.size}</td>
                   <td>Rp. ${parseFloat(entry.price).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</td>
+                  <td style="text-align: center;">
+                    <input type="checkbox" disabled ${entry.is_checked ? 'checked' : ''} />
+                  </td>
                 </tr>
               `).join('')}
             </tbody>
@@ -206,7 +211,8 @@
           "Tanggal": rawDate.toLocaleDateString('id-ID'),
           "Nama": entry.name,
           "Jenis Kendaraan": entry.size,
-          "Harga Cuci": "Rp. " + parseFloat(entry.price).toLocaleString('id-ID', { maximumFractionDigits: 0 })
+          "Harga Cuci": "Rp. " + parseFloat(entry.price).toLocaleString('id-ID', { maximumFractionDigits: 0 }),
+          "Ceklis": entry.is_checked ? "Ya" : "Tidak"
         };
       });
 
