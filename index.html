@@ -123,14 +123,28 @@
   </div>
 
   <script>
+    // Fungsi untuk mengecek status login dari localStorage
+    function checkLoginStatus() {
+      if (localStorage.getItem("loggedIn") === "true") {
+        // Jika sudah login, sembunyikan halaman login dan tampilkan konten utama
+        document.getElementById('login-container').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        // Ambil data dan subscribe realtime
+        fetchData();
+        subscribeRealtime();
+      }
+    }
+
     // Fungsi untuk melakukan pengecekan password
     function checkPassword() {
       const passwordInput = document.getElementById('login-password').value;
       if (passwordInput === '7290527') {
+        // Simpan status login ke localStorage
+        localStorage.setItem("loggedIn", "true");
         // Jika password benar, sembunyikan container login dan tampilkan konten utama
         document.getElementById('login-container').style.display = 'none';
         document.getElementById('main-content').style.display = 'block';
-        // Setelah login, ambil data dan subscribe secara realtime
+        // Ambil data dan subscribe realtime
         fetchData();
         subscribeRealtime();
       } else {
@@ -296,6 +310,9 @@
 
     // Event listener untuk filter tanggal
     document.getElementById('search-date').addEventListener('change', filterByDate);
+
+    // Cek status login ketika halaman selesai dimuat
+    document.addEventListener('DOMContentLoaded', checkLoginStatus);
   </script>
 </body>
 </html>
