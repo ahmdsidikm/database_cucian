@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Data Supabase ke Excel (Realtime)</title>
+  <title>Data Supabase ke Excel (Realtime & Filter Tanggal)</title>
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Library SheetJS untuk ekspor ke Excel -->
@@ -17,6 +17,10 @@
     h1 {
       text-align: center;
     }
+    .filter-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
     .date-section {
       margin-top: 20px;
     }
@@ -28,6 +32,7 @@
       box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
       border-radius: 5px;
       overflow: hidden;
+      margin-bottom: 20px;
     }
     th, td {
       border: 1px solid #ddd;
@@ -58,7 +63,13 @@
   </style>
 </head>
 <body>
-  <h1>Data Base AS (Realtime)</h1>
+  <h1>Data dari Supabase (Realtime)</h1>
+  <div class="filter-container">
+    <label for="search-date">Cari Tanggal: </label>
+    <input type="date" id="search-date" />
+    <!-- Tombol untuk mereset filter -->
+    <button onclick="resetFilter()">Reset</button>
+  </div>
   <div style="text-align: center;">
     <!-- Tombol untuk mengekspor data ke Excel -->
     <button class="export-btn" onclick="exportToExcel()">Export ke Excel</button>
@@ -73,6 +84,66 @@
     const SUPABASE_URL = 'https://rfkivmxezjerwwusfbji.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJma2l2bXhlemplcnd3dXNmYmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTgwOTI0MjEsImV4cCI6MjAzMzY2ODQyMX0.sJw9DmLLtpmSgS_7j4YYAXn6ZidAqSAhEy2J6FSYTs0';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Fungsi untuk menampilkan data (dalam bentuk tabel per tanggal)
+    function displayData(entries) {
+      const container = document.getElementById('data-container');
+      container.innerHTML = '';
+
+      // Kelompokkan data berdasarkan tanggal dengan format ISO (YYYY-MM-DD)
+      const groupedData = {};
+      entries.forEach(entry => {
+        const rawDate = new Date(entry.created_at);
+        const groupKey = rawDate.toISOString().slice(0, 10); // Format: YYYY-MM-DD
+        if (!groupedData[groupKey]) {
+          groupedData[groupKey] = [];
+        }
+        groupedData[groupKey].push(entry);
+      });
+
+      // Jika tidak ada data setelah filter
+      if (Object.keys(groupedData).length === 0) {
+        container.innerHTML = '<p style="text-align:center;">Tidak ada data untuk ditampilkan.</p>';
+        return;
+      }
+
+      // Tampilkan tabel berdasarkan tanggal, yang terbaru di atas
+      Object.keys(groupedData)
+        .sort((a, b) => new Date(b) - new Date(a))
+        .forEach(dateKey => {
+          const section = document.createElement('div');
+          section.className = 'date-section';
+          section.innerHTML = `<h2>${new Date(dateKey).toLocaleDateString('id-ID')}</h2>`;
+
+          const table = document.createElement('table');
+          // Menambahkan colgroup untuk memastikan kolom memiliki lebar konsisten
+          table.innerHTML = `
+            <colgroup>
+              <col style="width: 33.33%;">
+              <col style="width: 33.33%;">
+              <col style="width: 33.33%;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Jenis Kendaraan</th>
+                <th>Harga Cuci</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${groupedData[dateKey].map(entry => `
+                <tr>
+                  <td>${entry.name}</td>
+                  <td>${entry.size}</td>
+                  <td>Rp. ${parseFloat(entry.price).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          `;
+          section.appendChild(table);
+          container.appendChild(section);
+        });
+    }
 
     async function fetchData() {
       const container = document.getElementById('data-container');
@@ -91,63 +162,35 @@
           return;
         }
 
-        // Simpan data ke global variable agar dapat digunakan untuk ekspor
+        // Simpan data ke global variable agar dapat digunakan untuk ekspor & filter
         allEntries = vehicle_wash_entries;
 
-        container.innerHTML = '';
-
-        // Kelompokkan data berdasarkan tanggal dengan format ISO (YYYY-MM-DD)
-        const groupedData = {};
-        vehicle_wash_entries.forEach(entry => {
-          const rawDate = new Date(entry.created_at);
-          const groupKey = rawDate.toISOString().slice(0, 10); // Format: YYYY-MM-DD
-          if (!groupedData[groupKey]) {
-            groupedData[groupKey] = [];
-          }
-          groupedData[groupKey].push(entry);
-        });
-
-        // Tampilkan tabel berdasarkan tanggal, yang terbaru di atas
-        Object.keys(groupedData)
-          .sort((a, b) => new Date(b) - new Date(a))
-          .forEach(dateKey => {
-            const section = document.createElement('div');
-            section.className = 'date-section';
-            section.innerHTML = `<h2>${new Date(dateKey).toLocaleDateString('id-ID')}</h2>`;
-
-            const table = document.createElement('table');
-            // Menambahkan colgroup untuk memastikan kolom memiliki lebar konsisten
-            table.innerHTML = `
-              <colgroup>
-                <col style="width: 33.33%;">
-                <col style="width: 33.33%;">
-                <col style="width: 33.33%;">
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>Nama</th>
-                  <th>Jenis Kendaraan</th>
-                  <th>Harga Cuci</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${groupedData[dateKey].map(entry => `
-                  <tr>
-                    <td>${entry.name}</td>
-                    <td>${entry.size}</td>
-                    <td>Rp. ${parseFloat(entry.price).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            `;
-
-            section.appendChild(table);
-            container.appendChild(section);
-          });
+        // Terapkan filter jika ada tanggal yang dipilih
+        filterByDate();
       } catch (err) {
         console.error("Terjadi kesalahan:", err);
         container.innerHTML = '<p style="text-align:center;color:red;">Gagal memuat data.</p>';
       }
+    }
+
+    // Fungsi untuk melakukan filter berdasarkan tanggal yang dipilih
+    function filterByDate() {
+      const searchDate = document.getElementById('search-date').value; // format: YYYY-MM-DD
+      let filteredEntries = allEntries;
+
+      if (searchDate) {
+        filteredEntries = allEntries.filter(entry => {
+          const entryDate = new Date(entry.created_at).toISOString().slice(0, 10);
+          return entryDate === searchDate;
+        });
+      }
+      displayData(filteredEntries);
+    }
+
+    // Fungsi untuk mereset filter tanggal
+    function resetFilter() {
+      document.getElementById('search-date').value = '';
+      displayData(allEntries);
     }
 
     // Fungsi untuk mengekspor data ke Excel
@@ -157,7 +200,6 @@
         return;
       }
       // Buat array data untuk worksheet
-      // Menampilkan kolom: Tanggal, Nama, Jenis Kendaraan, Harga Cuci
       const dataForExcel = allEntries.map(entry => {
         const rawDate = new Date(entry.created_at);
         return {
@@ -168,26 +210,25 @@
         };
       });
 
-      // Buat worksheet dari data JSON
       const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
-      // Buat workbook baru dan tambahkan worksheet tersebut
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Data Vehicle Wash");
-      // Ekspor file Excel
       XLSX.writeFile(workbook, "DataVehicleWash.xlsx");
     }
 
     // Fungsi untuk melakukan subscribe secara realtime
     function subscribeRealtime() {
-      const realtimeSubscription = supabaseClient
+      supabaseClient
         .channel('vehicle-wash-realtime')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicle_wash_entries' }, payload => {
           console.log('Update realtime:', payload);
-          // Refresh data setiap ada perubahan
           fetchData();
         })
         .subscribe();
     }
+
+    // Event listener untuk filter tanggal
+    document.getElementById('search-date').addEventListener('change', filterByDate);
 
     document.addEventListener('DOMContentLoaded', () => {
       fetchData();
