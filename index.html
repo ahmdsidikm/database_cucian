@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Supabase ke Excel</title>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Library SheetJS untuk ekspor ke Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .date-section {
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .export-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .export-btn:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Data dari Supabase</h1>
+    <div style="text-align: center;">
+        <!-- Tombol untuk mengekspor data ke Excel -->
+        <button class="export-btn" onclick="exportToExcel()">Export ke Excel</button>
+    </div>
+    <div id="data-container">Memuat data...</div>
+
+    <script>
+        // Global variable untuk menyimpan semua data yang diambil
+        let allEntries = [];
+
+        // Ganti dengan kredensial Supabase Anda
+        const SUPABASE_URL = 'https://rfkivmxezjerwwusfbji.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJma2l2bXhlemplcnd3dXNmYmppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTgwOTI0MjEsImV4cCI6MjAzMzY2ODQyMX0.sJw9DmLLtpmSgS_7j4YYAXn6ZidAqSAhEy2J6FSYTs0';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function fetchData() {
+            const container = document.getElementById('data-container');
+            container.innerHTML = 'Memuat data...';
+
+            try {
+                let { data: vehicle_wash_entries, error } = await supabaseClient
+                    .from('vehicle_wash_entries')
+                    .select('*')
+                    .order('created_at', { ascending: false }); // Urutkan dari yang terbaru
+
+                if (error) throw error;
+
+                if (!vehicle_wash_entries || vehicle_wash_entries.length === 0) {
+                    container.innerHTML = '<p style="text-align:center;">Tidak ada data untuk ditampilkan.</p>';
+                    return;
+                }
+
+                // Simpan data ke global variable agar dapat digunakan untuk ekspor
+                allEntries = vehicle_wash_entries;
+
+                container.innerHTML = '';
+
+                // Kelompokkan data berdasarkan tanggal dengan format ISO (YYYY-MM-DD)
+                const groupedData = {};
+                vehicle_wash_entries.forEach(entry => {
+                    const rawDate = new Date(entry.created_at);
+                    const groupKey = rawDate.toISOString().slice(0, 10); // Format: YYYY-MM-DD
+                    if (!groupedData[groupKey]) {
+                        groupedData[groupKey] = [];
+                    }
+                    groupedData[groupKey].push(entry);
+                });
+
+                // Tampilkan tabel berdasarkan tanggal, yang terbaru di atas
+                Object.keys(groupedData)
+                    .sort((a, b) => new Date(b) - new Date(a))
+                    .forEach(dateKey => {
+                        const section = document.createElement('div');
+                        section.className = 'date-section';
+                        section.innerHTML = `<h2>${new Date(dateKey).toLocaleDateString('id-ID')}</h2>`;
+
+                        const table = document.createElement('table');
+                        table.innerHTML = `
+              <thead>
+                <tr>
+                  <th>Nama</th>
+                  <th>Jenis Kendaraan</th>
+                  <th>Harga Cuci</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${groupedData[dateKey].map(entry => `
+                  <tr>
+                    <td>${entry.name}</td>
+                    <td>${entry.size}</td>
+                    <td>Rp. ${parseFloat(entry.price).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            `;
+
+                        section.appendChild(table);
+                        container.appendChild(section);
+                    });
+            } catch (err) {
+                console.error("Terjadi kesalahan:", err);
+                container.innerHTML = '<p style="text-align:center;color:red;">Gagal memuat data.</p>';
+            }
+        }
+
+        // Fungsi untuk mengekspor data ke Excel
+        function exportToExcel() {
+            if (allEntries.length === 0) {
+                alert("Tidak ada data untuk diekspor.");
+                return;
+            }
+            // Buat array data untuk worksheet
+            // Menampilkan kolom: Tanggal, Nama, Jenis Kendaraan, Harga Cuci
+            const dataForExcel = allEntries.map(entry => {
+                const rawDate = new Date(entry.created_at);
+                return {
+                    "Tanggal": rawDate.toLocaleDateString('id-ID'),
+                    "Nama": entry.name,
+                    "Jenis Kendaraan": entry.size,
+                    "Harga Cuci": "Rp. " + parseFloat(entry.price).toLocaleString('id-ID', { maximumFractionDigits: 0 })
+                };
+            });
+
+            // Buat worksheet dari data JSON
+            const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
+            // Buat workbook baru dan tambahkan worksheet tersebut
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Data Vehicle Wash");
+            // Ekspor file Excel
+            XLSX.writeFile(workbook, "DataVehicleWash.xlsx");
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchData);
+    </script>
+</body>
+
+</html>
