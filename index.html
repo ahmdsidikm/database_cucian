@@ -9,6 +9,41 @@
   <!-- Library SheetJS untuk ekspor ke Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
+    /* Styling untuk halaman login */
+    #login-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: #f8f9fa;
+    }
+    #login-container input {
+      padding: 10px;
+      font-size: 16px;
+      margin: 10px 0;
+      width: 200px;
+    }
+    #login-container button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #login-container button:hover {
+      background-color: #0056b3;
+    }
+
+    /* Styling untuk konten utama, disembunyikan pada awalnya */
+    #main-content {
+      display: none;
+      padding: 20px;
+    }
+
+    /* Styling tambahan dari kode sebelumnya */
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
@@ -63,20 +98,46 @@
   </style>
 </head>
 <body>
-  <h1>Database AS Steam (Realtime)</h1>
-  <div class="filter-container">
-    <label for="search-date">Cari Tanggal: </label>
-    <input type="date" id="search-date" />
-    <!-- Tombol untuk mereset filter -->
-    <button onclick="resetFilter()">Reset</button>
+  <!-- Container Login -->
+  <div id="login-container">
+    <h1>Login</h1>
+    <p>Masukkan password untuk melanjutkan:</p>
+    <input type="password" id="login-password" placeholder="Password">
+    <button onclick="checkPassword()">Masuk</button>
   </div>
-  <div style="text-align: center;">
-    <!-- Tombol untuk mengekspor data ke Excel -->
-    <button class="export-btn" onclick="exportToExcel()">Export ke Excel</button>
+
+  <!-- Container Main Content, disembunyikan awalnya -->
+  <div id="main-content">
+    <h1>Database AS Steam (Realtime)</h1>
+    <div class="filter-container">
+      <label for="search-date">Cari Tanggal: </label>
+      <input type="date" id="search-date" />
+      <!-- Tombol untuk mereset filter -->
+      <button onclick="resetFilter()">Reset</button>
+    </div>
+    <div style="text-align: center;">
+      <!-- Tombol untuk mengekspor data ke Excel -->
+      <button class="export-btn" onclick="exportToExcel()">Export ke Excel</button>
+    </div>
+    <div id="data-container">Memuat data...</div>
   </div>
-  <div id="data-container">Memuat data...</div>
-  
+
   <script>
+    // Fungsi untuk melakukan pengecekan password
+    function checkPassword() {
+      const passwordInput = document.getElementById('login-password').value;
+      if (passwordInput === '7290527') {
+        // Jika password benar, sembunyikan container login dan tampilkan konten utama
+        document.getElementById('login-container').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        // Setelah login, ambil data dan subscribe secara realtime
+        fetchData();
+        subscribeRealtime();
+      } else {
+        alert('Password salah. Silahkan coba lagi.');
+      }
+    }
+
     // Global variable untuk menyimpan semua data yang diambil
     let allEntries = [];
 
@@ -235,11 +296,6 @@
 
     // Event listener untuk filter tanggal
     document.getElementById('search-date').addEventListener('change', filterByDate);
-
-    document.addEventListener('DOMContentLoaded', () => {
-      fetchData();
-      subscribeRealtime();
-    });
   </script>
 </body>
 </html>
